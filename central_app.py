@@ -371,10 +371,22 @@ def lookup_registered_site(site_id):
 
 
 def is_valid_site_auth(site_id, auth):
+    """Master key OR registered per-site key (used for user-sync, refresh, delete)."""
     if not auth:
         return False
     if hmac.compare_digest(auth, API_KEY):
         return True
+    reg = lookup_registered_site(site_id)
+    site_key = (reg or {}).get("api_key") or ""
+    return bool(site_key and hmac.compare_digest(auth, site_key))
+
+
+def is_registered_site_auth(site_id, auth):
+    """Strict check: only a registered per-site key is accepted.
+    Used for /api/site-summary so sites cannot push data until an
+    admin has explicitly registered them via 'Add New Site'."""
+    if not auth or not site_id:
+        return False
     reg = lookup_registered_site(site_id)
     site_key = (reg or {}).get("api_key") or ""
     return bool(site_key and hmac.compare_digest(auth, site_key))
@@ -511,8 +523,8 @@ def upsert_site_summary():
     if not site_id or not site_name or not dashboard_url:
         return jsonify({"error": "site_id, site_name, and dashboard_url are required"}), 400
     auth = request.headers.get("X-API-Key", "")
-    if not is_valid_site_auth(site_id, auth):
-        return jsonify({"error": "Unauthorized"}), 401
+    if not is_registered_site_auth(site_id, auth):
+        return jsonify({"error": "Unauthorized: site must be registered via the central dashboard before syncing"}), 401
 
     with get_db() as conn:
         refresh_url = (payload.get("refresh_url") or "").strip()
