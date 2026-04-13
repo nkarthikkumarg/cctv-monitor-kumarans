@@ -9,7 +9,7 @@ This guide packages the local site stack for Windows:
 
 For the full, in-depth Cloudflare tunnel walkthrough, use:
 
-- [deploy/windows/README.md](/Volumes/Hivelinks/Test Apps/cam-monitor-v2/deploy/windows/README.md)
+- [deploy/windows/README.md](README.md)
 
 ## 1. Requirements
 
@@ -23,7 +23,7 @@ For the full, in-depth Cloudflare tunnel walkthrough, use:
 Open PowerShell as Administrator:
 
 ```powershell
-cd C:\path\to\cam-monitor-v2
+cd C:\path\to\cctv-monitor-kumarans
 powershell -ExecutionPolicy Bypass -File .\deploy\windows\install.ps1
 ```
 
@@ -55,7 +55,7 @@ This will:
 .\deploy\windows\bin\cloudflared.exe tunnel route dns mls-site mls-site.yourdomain.in
 ```
 
-4. Edit [cloudflared.yml.template](/Volumes/Hivelinks/Test Apps/cam-monitor-v2/deploy/windows/cloudflared.yml.template) and save as:
+4. Edit [cloudflared.yml.template](cloudflared.yml.template) and save as:
 
 - `deploy/windows/cloudflared.yml`
 

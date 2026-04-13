@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Local CamMonitor",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["run_local.py"],
+      "port": 5001
+    },
+    {
+      "name": "Central Dashboard",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["central_app.py"],
+      "port": 5100
+    },
+    {
+      "name": "Central Dashboard (gunicorn)",
+      "runtimeExecutable": "gunicorn",
+      "runtimeArgs": ["--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "120", "central_app:app"],
+      "port": 8080
+    },
+    {
+      "name": "Caddy Reverse Proxy",
+      "runtimeExecutable": "caddy",
+      "runtimeArgs": ["run", "--config", "Caddyfile"],
+      "port": 8080
+    }
+  ]
+}

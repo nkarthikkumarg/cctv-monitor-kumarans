@@ -7,10 +7,10 @@ Wants=network-online.target
 Type=simple
 User=cammonitor
 Group=cammonitor
-WorkingDirectory=/opt/cam-monitor-v2
+WorkingDirectory=/opt/cctv-monitor-kumarans
 Environment=PYTHONUNBUFFERED=1
 Environment=CAMMONITOR_STRICT_STARTUP=1
-ExecStart=/opt/cam-monitor-v2/.venv/bin/python /opt/cam-monitor-v2/run_local.py
+ExecStart=/opt/cctv-monitor-kumarans/.venv/bin/python /opt/cctv-monitor-kumarans/run_local.py
 Restart=always
 RestartSec=5
 UMask=007

@@ -97,7 +97,7 @@ sudo chmod +x /usr/local/bin/go2rtc
 
 ## 3. Confirm CamMonitor Config
 
-In [config.ini](/Volumes/Hivelinks/Test%20Apps/cam-monitor-v2/config.ini), keep:
+In [config.ini](../../config.ini), keep:
 
 ```ini
 [go2rtc]
@@ -111,8 +111,8 @@ This keeps go2rtc private to the local machine.
 
 Copy the bundled service files:
 
-- [cammonitor.service](/Volumes/Hivelinks/Test%20Apps/cam-monitor-v2/deploy/linux/cammonitor.service)
-- [go2rtc.service](/Volumes/Hivelinks/Test%20Apps/cam-monitor-v2/deploy/linux/go2rtc.service)
+- [cammonitor.service](cammonitor.service)
+- [go2rtc.service](go2rtc.service)
 
 Commands:
 
@@ -130,7 +130,7 @@ Install Caddy from the official package for your Linux distribution:
 
 The bundled config is:
 
-- [Caddyfile](/Volumes/Hivelinks/Test%20Apps/cam-monitor-v2/deploy/linux/Caddyfile)
+- [Caddyfile](Caddyfile)
 
 It serves:
 
@@ -141,7 +141,7 @@ It serves:
 
 The bundled config is:
 
-- [go2rtc.yaml](/Volumes/Hivelinks/Test%20Apps/cam-monitor-v2/deploy/linux/go2rtc.yaml)
+- [go2rtc.yaml](go2rtc.yaml)
 
 It binds go2rtc only to localhost.
 

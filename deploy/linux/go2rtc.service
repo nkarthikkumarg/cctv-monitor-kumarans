@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=simple
 User=cammonitor
 Group=cammonitor
-WorkingDirectory=/opt/cam-monitor-v2
-ExecStart=/usr/local/bin/go2rtc -config /opt/cam-monitor-v2/deploy/linux/go2rtc.yaml
+WorkingDirectory=/opt/cctv-monitor-kumarans
+ExecStart=/usr/local/bin/go2rtc -config /opt/cctv-monitor-kumarans/deploy/linux/go2rtc.yaml
 Restart=always
 RestartSec=5
 

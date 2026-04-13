@@ -16,7 +16,7 @@ Use this for every new site deployment.
 
 For the recommended Linux deployment model, also see:
 
-- [LOCAL_SERVER_SETUP.md](/Volumes/Hivelinks/Test%20Apps/cam-monitor-v2/deploy/linux/LOCAL_SERVER_SETUP.md)
+- [LOCAL_SERVER_SETUP.md](deploy/linux/LOCAL_SERVER_SETUP.md)
 
 ## Naming Recommendation
 
@@ -47,7 +47,7 @@ If this page opens, the local app is running.
 
 For production, the preferred model is not to run this manually. Use the Linux service setup in:
 
-- [LOCAL_SERVER_SETUP.md](/Volumes/Hivelinks/Test%20Apps/cam-monitor-v2/deploy/linux/LOCAL_SERVER_SETUP.md)
+- [LOCAL_SERVER_SETUP.md](deploy/linux/LOCAL_SERVER_SETUP.md)
 
 ## Step 2. Create The Site In Central
 
@@ -150,7 +150,7 @@ cloudflared tunnel --config /path/to/cloudflared-blr-site.yml run blr-site
 Example:
 
 ```bash
-cloudflared tunnel --config "/Volumes/Hivelinks/Test Apps/cam-monitor-v2/cloudflared-blr-site.yml" run blr-site
+cloudflared tunnel --config "cloudflared-blr-site.yml" run blr-site
 ```
 
 Check in browser:
@@ -271,5 +271,5 @@ If either stops, remote access or sync behavior will be affected.
 
 For production, configure auto-start so reboot/power failure does not break operations:
 
-- Linux: use [deploy/linux/LOCAL_SERVER_SETUP.md](/Volumes/Hivelinks/Test Apps/cam-monitor-v2/deploy/linux/LOCAL_SERVER_SETUP.md) and enable `cammonitor`, `go2rtc`, `caddy` services. Keep cloudflared running as a service as well.
-- Windows: use [deploy/windows/README.md](/Volumes/Hivelinks/Test Apps/cam-monitor-v2/deploy/windows/README.md). The installer now creates startup tasks by default for app/go2rtc/caddy/cloudflared.
+- Linux: use [deploy/linux/LOCAL_SERVER_SETUP.md](deploy/linux/LOCAL_SERVER_SETUP.md) and enable `cammonitor`, `go2rtc`, `caddy` services. Keep cloudflared running as a service as well.
+- Windows: use [deploy/windows/README.md](deploy/windows/README.md). The installer now creates startup tasks by default for app/go2rtc/caddy/cloudflared.
