@@ -1273,6 +1273,9 @@ def api_register_site_settings():
     site_name = settings["site_name"].strip()
     registration_url = get_registration_url(settings["api_url"])
     existing_api_key = (settings.get("api_key") or "").strip()
+    # Treat placeholder/default key as no key — force registration flow
+    if existing_api_key in ("local-dev-key", ""):
+        existing_api_key = ""
     if not site_id:
         return jsonify({"error": "Site ID is required before registration"}), 400
     if not site_name:
@@ -2661,7 +2664,21 @@ async function registerThisSite(){
   const regBtn=document.getElementById('registerSiteBtn');
   regBtn.disabled=true;
   msg.style.color='#888';
-  msg.textContent='Registering this site with the central dashboard...';
+  msg.textContent='Saving settings...';
+  // Save form data first so config.ini has the latest API key before registering
+  const form=document.getElementById('siteSettingsForm');
+  const fd=new FormData(form);
+  const payload=Object.fromEntries(fd.entries());
+  payload.enabled=document.getElementById('siteEnabled').checked;
+  const saveR=await apiFetch('/api/site-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(!saveR.ok){
+    regBtn.disabled=false;
+    const sd=await saveR.json();
+    msg.style.color='#c0392b';
+    msg.textContent=sd.error || 'Could not save settings before registering';
+    return;
+  }
+  msg.textContent='Connecting to central dashboard...';
   const r=await apiFetch('/api/site-settings/register',{method:'POST'});
   const d=await r.json();
   if(!r.ok){
