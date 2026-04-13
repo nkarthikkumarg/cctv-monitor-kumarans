@@ -578,37 +578,48 @@ def login():
 
 @app.route("/sso-login")
 def sso_login():
-    token = request.args.get("token", "")
-    payload = verify_sso_token(token)
-    if not payload:
-        return redirect(url_for("login"))
-    username = payload.get("username", "")
-    central_sync.sync_users()
-    user = db.get_user_by_username(username)
-    if not user:
-        return redirect(url_for("login"))
-    if user.get("source") == "central":
-        if not can_use_cached_central_user(user):
+    import traceback as _tb
+    try:
+        token = request.args.get("token", "")
+        log.debug("SSO attempt: token_present=%s central_api_key_len=%d", bool(token), len(CENTRAL_API_KEY))
+        payload = verify_sso_token(token)
+        if not payload:
+            log.warning("SSO failed: invalid or expired token (key=%s...)", CENTRAL_API_KEY[:6])
             return redirect(url_for("login"))
-    elif not (
-        user.get("source") == "local"
-        and user.get("role") == "admin"
-        and (user.get("username") or "").strip().lower() == USERNAME.strip().lower()
-        and (payload.get("role") or "").strip().lower() == "admin"
-    ):
-        return redirect(url_for("login"))
-    login_user(User(user))
-    db.add_audit(
-        actor_name(),
-        "login",
-        f"Single sign-on login from central dashboard for {user.get('display_name') or user.get('username')}",
-        "System",
-        request.remote_addr,
-        "success",
-    )
-    if not SETUP_COMPLETE:
-        return redirect(url_for("setup"))
-    return redirect(url_for("dashboard"))
+        username = payload.get("username", "")
+        log.debug("SSO token valid for username=%s role=%s", username, payload.get("role"))
+        central_sync.sync_users()
+        user = db.get_user_by_username(username)
+        if not user:
+            log.warning("SSO failed: username '%s' not found in local DB", username)
+            return redirect(url_for("login"))
+        if user.get("source") == "central":
+            if not can_use_cached_central_user(user):
+                log.warning("SSO failed: central user '%s' cache expired or inactive", username)
+                return redirect(url_for("login"))
+        elif not (
+            user.get("source") == "local"
+            and user.get("role") == "admin"
+            and (user.get("username") or "").strip().lower() == USERNAME.strip().lower()
+            and (payload.get("role") or "").strip().lower() == "admin"
+        ):
+            log.warning("SSO failed: local user '%s' not eligible (source=%s role=%s)", username, user.get("source"), user.get("role"))
+            return redirect(url_for("login"))
+        login_user(User(user))
+        db.add_audit(
+            actor_name(),
+            "login",
+            f"Single sign-on login from central dashboard for {user.get('display_name') or user.get('username')}",
+            "System",
+            request.remote_addr,
+            "success",
+        )
+        if not SETUP_COMPLETE:
+            return redirect(url_for("setup"))
+        return redirect(url_for("dashboard"))
+    except Exception:
+        log.error("SSO internal error:\n%s", _tb.format_exc())
+        raise
 
 @app.route("/logout")
 @login_required
