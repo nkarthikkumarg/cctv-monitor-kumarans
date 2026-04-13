@@ -1,0 +1,76 @@
+# CamMonitor — example configuration
+# Copy this file to config.ini and fill in your values.
+# config.ini is excluded from git because it may contain credentials.
+
+[monitor]
+poll_interval = 10
+max_workers = 150
+ping_timeout_ms = 1000
+ping_retries = 2
+status_retries = 1
+alert_ping_retries = 6
+user_sync_interval_sec = 900
+alert_cooldown_minutes = 30
+history_retention_days = 365
+
+[web]
+host = 127.0.0.1
+port = 5001
+# REQUIRED: replace with a long random value, e.g. from: python -c "import secrets; print(secrets.token_hex(32))"
+secret_key = CHANGE_ME_random_hex_64_chars
+dashboard_username = admin
+# REQUIRED: set a strong password before first run
+dashboard_password = CHANGE_ME_strong_password
+dashboard_admin_name = Administrator
+# Set to true ONLY after HTTPS is confirmed (Cloudflare Tunnel or Caddy TLS).
+# Leave false for plain HTTP local installs — required for login/setup to work over HTTP.
+https_only = false
+
+[email]
+enabled = false
+smtp_host = smtp.gmail.com
+smtp_port = 587
+smtp_use_tls = true
+sender_email = your_email@example.com
+sender_password = your_app_password
+vendor_email = vendor@example.com
+cc_email = it-team@example.com
+subject_prefix = [CAM ALERT]
+daily_report_time = 08:00
+
+[whatsapp]
+enabled = false
+account_sid = your_twilio_account_sid
+auth_token = your_twilio_auth_token
+from_number = whatsapp:+14155238886
+to_number = whatsapp:+91XXXXXXXXXX
+
+[database]
+# Use an absolute path in production; the installer sets this automatically.
+db_path = cam_monitor.db
+
+[go2rtc]
+enabled = true
+base_url = http://127.0.0.1:1984
+proxy_path = /go2rtc
+
+[cameras]
+csv_path = cameras.csv
+
+[central]
+enabled = false
+site_id = my-site-id
+site_name = My Site Name
+campus = Campus Name
+site_address = 123 Example Street
+contact_name = Security Control Room
+contact_phone = +91 XXXXXXXXXX
+contact_email = controlroom@example.com
+# Set these after registering with your central dashboard:
+dashboard_url =
+api_url =
+api_key =
+refresh_url =
+
+[setup]
+completed = false

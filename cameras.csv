@@ -1,0 +1,11 @@
+ip,name,location,zone,nvr_name,nvr_ip,nvr_channel,brand,username,password,notes
+192.168.1.101,CAM-01,Main Gate,Entry,NVR-01,192.168.1.200,1,hikvision,admin,admin123,Fixed dome
+192.168.1.102,CAM-02,Side Gate,Entry,NVR-01,192.168.1.200,2,hikvision,admin,admin123,PTZ
+192.168.1.103,CAM-03,Reception,Floor 1,NVR-01,192.168.1.200,3,dahua,admin,admin123,Fixed dome
+192.168.1.104,CAM-04,Open Office,Floor 1,NVR-01,192.168.1.200,4,dahua,admin,admin123,
+192.168.1.105,CAM-05,Corridor A,Floor 1,NVR-02,192.168.1.201,1,hikvision,admin,admin123,
+192.168.1.106,CAM-06,Manager Cabin,Floor 2,NVR-02,192.168.1.201,2,prama,admin,admin123,
+192.168.1.107,CAM-07,HR Dept,Floor 2,NVR-02,192.168.1.201,3,prama,admin,admin123,
+192.168.1.108,CAM-08,Parking Block A,Parking,NVR-03,192.168.1.202,1,dahua,admin,admin123,Outdoor
+192.168.1.109,CAM-09,Parking Block B,Parking,NVR-03,192.168.1.202,2,dahua,admin,admin123,Outdoor
+192.168.1.110,CAM-10,Server Room,Server Room,NVR-03,192.168.1.202,3,hikvision,admin,admin123,Critical

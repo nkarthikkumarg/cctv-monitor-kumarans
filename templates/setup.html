@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First-Time Setup — Sri Kumaran CCTV Monitor</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:linear-gradient(160deg,#eef4fb 0%,#dde8f2 100%);min-height:100vh;color:#1a2636;padding:24px 16px 48px}
+
+/* ── Top banner ─────────────────────────────────────────────── */
+.banner{max-width:900px;margin:0 auto 24px;background:#fff;border-radius:20px;border:1px solid #d4dff0;box-shadow:0 20px 48px rgba(15,23,42,.10);overflow:hidden}
+.banner-body{display:flex;align-items:center;gap:20px;padding:20px 28px}
+.banner-logo{flex:0 0 auto}
+.banner-logo img{height:72px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(15,23,42,.10))}
+.banner-text{flex:1;min-width:0}
+.banner-eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#1d6a9f;margin-bottom:6px}
+.banner-title{font-size:20px;font-weight:800;line-height:1.2;color:#0f172a}
+.banner-sub{margin-top:6px;font-size:13px;color:#516174;line-height:1.55}
+.banner-user{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.banner-user-pill{display:inline-flex;align-items:center;gap:7px;background:#f0f6ff;border:1px solid #c5d9f5;border-radius:999px;padding:6px 14px;font-size:12px;color:#2159b3;font-weight:700}
+.banner-user-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0}
+.banner-strip{background:linear-gradient(90deg,#0f3d6e 0%,#1d6abe 50%,#1a56a8 100%);padding:10px 28px;display:flex;align-items:center;gap:10px}
+.banner-strip-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;color:#fff;letter-spacing:.1em;text-transform:uppercase}
+.banner-strip p{font-size:12px;color:rgba(255,255,255,.85);line-height:1.5}
+
+/* ── Steps rail ─────────────────────────────────────────────── */
+.steps-rail{max-width:900px;margin:0 auto 22px;display:flex;align-items:center;gap:0}
+.step{display:flex;align-items:center;gap:10px;flex:1}
+.step-num{width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #c2d4eb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#829ab6;flex-shrink:0;transition:all .2s}
+.step-num.active{background:#1f6feb;border-color:#1f6feb;color:#fff;box-shadow:0 4px 12px rgba(31,111,235,.35)}
+.step-num.done{background:#16a34a;border-color:#16a34a;color:#fff}
+.step-label{font-size:12px;font-weight:600;color:#829ab6}
+.step-label.active{color:#1f6feb}
+.step-label.done{color:#16a34a}
+.step-line{flex:1;height:2px;background:#dce6f2;margin:0 6px}
+
+/* ── Grid ───────────────────────────────────────────────────── */
+.grid{max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:680px){.grid{grid-template-columns:1fr}}
+
+/* ── Card ───────────────────────────────────────────────────── */
+.card{background:#fff;border:1px solid #d8e4f0;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(15,23,42,.07)}
+.card-header{padding:16px 20px 14px;border-bottom:1px solid #edf2f7;display:flex;align-items:flex-start;gap:12px}
+.card-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.card-icon.blue{background:#ebf5ff}
+.card-icon.green{background:#ecfdf5}
+.card-icon.orange{background:#fff7ed}
+.card-icon.purple{background:#f5f3ff}
+.card-htext{flex:1}
+.card-title{font-size:14px;font-weight:700;color:#0f172a;margin-bottom:2px}
+.card-desc{font-size:11px;color:#64748b;line-height:1.5}
+.card-body{padding:18px 20px}
+
+/* ── Form elements ──────────────────────────────────────────── */
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4b6280;margin-bottom:5px}
+.field input[type=text],.field input[type=url],.field input[type=email]{width:100%;padding:9px 12px;border-radius:10px;border:1px solid #c8d7ea;font-size:13px;color:#1a2636;outline:none;transition:border-color .15s,box-shadow .15s}
+.field input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.field .hint{font-size:11px;color:#8fa3bb;margin-top:5px;line-height:1.4}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.btn-primary{background:#1f4ed8;color:#fff;border-color:#1f4ed8}
+.btn-primary:hover{background:#1a44c4}
+.btn-success{background:#15803d;color:#fff;border-color:#15803d}
+.btn-success:hover{background:#126a34}
+.btn-outline{background:#fff;color:#374151;border-color:#c8d7ea}
+.btn-outline:hover{background:#f8fafc;border-color:#a0b5cc}
+.btn-file{background:#f0f6ff;color:#1d5296;border-color:#b5cef5}
+.btn-file:hover{background:#e0edff}
+.btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+
+/* ── Status messages ────────────────────────────────────────── */
+.status-msg{font-size:12px;color:#516174;margin-top:8px;min-height:18px;line-height:1.5}
+.status-msg.ok{color:#15803d;font-weight:600}
+.status-msg.err{color:#b91c1c;font-weight:600}
+
+/* ── File preview ───────────────────────────────────────────── */
+.file-drop{border:2px dashed #b5cef5;border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:#f8fbff;transition:border-color .15s,background .15s;margin-bottom:12px}
+.file-drop:hover{border-color:#3b82f6;background:#f0f6ff}
+.file-drop .drop-icon{font-size:28px;margin-bottom:6px}
+.file-drop .drop-label{font-size:13px;font-weight:600;color:#2159b3}
+.file-drop .drop-sub{font-size:11px;color:#8fa3bb;margin-top:3px}
+.preview-box{border:1px solid #dde8f2;border-radius:10px;padding:12px;font-size:12px;background:#f7fafd;max-height:180px;overflow:auto;color:#374151;line-height:1.6}
+.preview-stat{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;margin:3px 3px 3px 0}
+.preview-stat.new{background:#ecfdf5;color:#166534}
+.preview-stat.update{background:#eff6ff;color:#1d4ed8}
+.preview-stat.warn{background:#fef9c3;color:#854d0e}
+
+/* ── Finish card ────────────────────────────────────────────── */
+.finish-card{grid-column:1/-1;background:linear-gradient(135deg,#0f3d6e 0%,#1d6abe 100%);border-color:#1a56a8}
+.finish-card .card-header{border-bottom-color:rgba(255,255,255,.12)}
+.finish-card .card-title,.finish-card .card-desc{color:#fff}
+.finish-card .card-desc{color:rgba(255,255,255,.75)}
+.finish-card .card-icon{background:rgba(255,255,255,.12)}
+.finish-card .card-body{padding:18px 20px}
+.checklist{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+@media(max-width:480px){.checklist{grid-template-columns:1fr}}
+.checklist li{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.9)}
+.check-dot{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.footer{max-width:900px;margin:24px auto 0;font-size:11px;color:#8fa3bb;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+
+<!-- ── Banner ── -->
+<div class="banner">
+  <div class="banner-body">
+    <div class="banner-logo">
+      <img src="https://kumarans.org/images/Sri%20Kumaran%20Childrens%20Home.png" alt="Sri Kumaran Childrens Home Educational Council">
+    </div>
+    <div class="banner-text">
+      <div class="banner-eyebrow">Security Operations · First-Time Configuration</div>
+      <div class="banner-title">CCTV Monitoring System — Site Setup</div>
+      <p class="banner-sub">
+        Configure this local server before it begins monitoring. You will set the campus identity,
+        connect it to the central console, and import the camera registry.
+        This wizard runs once and can be revisited from Settings.
+      </p>
+    </div>
+    <div class="banner-user">
+      <div class="banner-user-pill">
+        <span class="banner-user-dot"></span>
+        Signed in as {{ user }}
+      </div>
+    </div>
+  </div>
+  <div class="banner-strip">
+    <span class="banner-strip-badge">Administrator Required</span>
+    <p>All three steps below must be completed before cameras can be monitored.
+       Only admin-role users can access this page.</p>
+  </div>
+</div>
+
+<!-- ── Steps ── -->
+<div class="steps-rail">
+  <div class="step">
+    <div class="step-num active" id="sn1">1</div>
+    <div class="step-label active">Campus Identity</div>
+  </div>
+  <div class="step-line"></div>
+  <div class="step">
+    <div class="step-num" id="sn2">2</div>
+    <div class="step-label" id="sl2">Camera Import</div>
+  </div>
+  <div class="step-line"></div>
+  <div class="step">
+    <div class="step-num" id="sn3">3</div>
+    <div class="step-label" id="sl3">Activate Monitoring</div>
+  </div>
+</div>
+
+<!-- ── Cards ── -->
+<div class="grid">
+
+  <!-- Card 1 — Campus Identity -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon blue">🏫</div>
+      <div class="card-htext">
+        <div class="card-title">Step 1 — Campus Identity &amp; Central Console</div>
+        <div class="card-desc">
+          Identify which Sri Kumaran campus this server monitors and link it to the
+          central CCTV console so status is reported automatically.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <form id="setupForm" onsubmit="saveSite(event)">
+        <div class="field">
+          <label for="siteId">Site ID <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:#aab">(short slug, no spaces)</span></label>
+          <input id="siteId" type="text" placeholder="e.g. skch-mallasandra or skch-jc-road">
+          <div class="hint">Used to uniquely identify this campus in the central dashboard. Example: <strong>skch-mallasandra</strong>, <strong>skch-jc-road</strong></div>
+        </div>
+        <div class="field">
+          <label for="siteName">Campus Name</label>
+          <input id="siteName" type="text" placeholder="e.g. Mallasandra Campus">
+          <div class="hint">Shown on all reports and the central console. Use the official campus name.</div>
+        </div>
+        <div class="field">
+          <label for="campus">Campus / Block</label>
+          <input id="campus" type="text" placeholder="e.g. Mallasandra, J.C. Road, Vijayanagar">
+        </div>
+        <div class="field">
+          <label for="contactEmail">Security Desk Email</label>
+          <input id="contactEmail" type="email" placeholder="security@kumarans.org">
+        </div>
+        <div class="field">
+          <label for="centralUrl">Central Console API URL</label>
+          <input id="centralUrl" type="url" placeholder="https://cctv.kumarans.in/api/site-summary">
+          <div class="hint">Leave blank if this site runs standalone without central reporting.</div>
+        </div>
+        <div class="field">
+          <label for="centralKey">Central API Key</label>
+          <input id="centralKey" type="text" placeholder="Obtain from the central console admin">
+          <div class="hint">Generated by the central dashboard. Required for status sync.</div>
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">💾 Save Campus Settings</button>
+        </div>
+      </form>
+      <div class="status-msg" id="siteStatus"></div>
+    </div>
+  </div>
+
+  <!-- Card 2 — Camera Import -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon green">📷</div>
+      <div class="card-htext">
+        <div class="card-title">Step 2 — Camera Registry Import</div>
+        <div class="card-desc">
+          Upload the campus camera register (Excel or CSV). Each row is one camera:
+          IP address, zone, NVR, channel, and credentials.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="file-drop" onclick="document.getElementById('cameraFile').click()">
+        <div class="drop-icon">📁</div>
+        <div class="drop-label">Click to choose the camera register</div>
+        <div class="drop-sub">.xlsx or .csv — use the Import Template if you haven't prepared a file yet</div>
+      </div>
+      <input id="cameraFile" type="file" accept=".xlsx,.csv" style="display:none" onchange="previewUpload(event)">
+      <div id="previewArea" style="display:none;margin-bottom:10px" class="preview-box"></div>
+      <div class="btn-row">
+        <button type="button" class="btn btn-outline" onclick="window.location='/export/template'">⬇ Download Template</button>
+        <button type="button" class="btn btn-success" id="importBtn" onclick="importUpload()" style="display:none">✅ Confirm Import</button>
+      </div>
+      <div class="status-msg" id="importStatus"></div>
+    </div>
+  </div>
+
+  <!-- Card 3 — Services info (spans both columns on wide screens or stacks) -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon orange">🌐</div>
+      <div class="card-htext">
+        <div class="card-title">Remote &amp; Tunnel Access</div>
+        <div class="card-desc">
+          How this local server is made accessible to the central console and authorised staff.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:700;color:#374151">What was installed automatically</label>
+        <ul style="margin-top:8px;padding-left:18px;font-size:12px;color:#516174;line-height:2">
+          <li><strong>go2rtc</strong> — live camera stream bridge (WebRTC / MJPEG)</li>
+          <li><strong>Caddy</strong> — local reverse proxy on port 8080</li>
+          <li><strong>ffmpeg &amp; WebRTC libraries</strong> — codec support</li>
+          <li>All services restart automatically on reboot</li>
+        </ul>
+      </div>
+      <div class="field">
+        <label style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:700;color:#374151">Connecting to Cloudflare Tunnel</label>
+        <ul style="margin-top:8px;padding-left:18px;font-size:12px;color:#516174;line-height:2">
+          <li>Point the tunnel origin to <code style="background:#f0f4fa;padding:1px 5px;border-radius:4px;font-size:11px">http://127.0.0.1:8080</code></li>
+          <li>Use the public hostname for the <em>Dashboard URL</em> and <em>Refresh URL</em> fields above</li>
+          <li>Keep the API key confidential — regenerate it from the central console if compromised</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 4 — Finish -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon purple">🔒</div>
+      <div class="card-htext">
+        <div class="card-title">Security Reminder Before Going Live</div>
+        <div class="card-desc">
+          Review these before activating continuous monitoring.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul style="padding-left:18px;font-size:12px;color:#516174;line-height:2;margin-bottom:14px">
+        <li>Change the default admin password in <strong>Notification Settings → Admin</strong></li>
+        <li>Confirm NVR IP addresses are reachable from this server</li>
+        <li>Ensure the Cloudflare Tunnel is active before expecting central sync</li>
+        <li>Limit physical access to this monitoring server</li>
+        <li>All camera credentials in the import file are stored encrypted at rest</li>
+      </ul>
+      <div class="hint" style="margin-bottom:12px">
+        Once you click <strong>Activate Monitoring</strong>, the system will begin polling all
+        imported cameras every 10 seconds and alerting the security desk on any offline event.
+      </div>
+    </div>
+  </div>
+
+  <!-- Finish card — full width -->
+  <div class="card finish-card">
+    <div class="card-header">
+      <div class="card-icon">✅</div>
+      <div class="card-htext">
+        <div class="card-title">Step 3 — Activate Continuous Monitoring</div>
+        <div class="card-desc">
+          Complete setup and begin live surveillance monitoring for this Sri Kumaran campus.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="checklist">
+        <li><div class="check-dot">1</div> Campus identity and central console URL saved</li>
+        <li><div class="check-dot">2</div> Camera register imported successfully</li>
+        <li><div class="check-dot">3</div> Cloudflare Tunnel pointing to port 8080</li>
+        <li><div class="check-dot">4</div> Admin password changed from default</li>
+      </ul>
+      <div class="btn-row">
+        <button onclick="finishSetup()" class="btn btn-primary" style="background:#15803d;border-color:#15803d;font-size:13px;padding:11px 22px">
+          🟢 Activate Monitoring for This Campus
+        </button>
+      </div>
+      <div class="status-msg" id="finishStatus" style="color:rgba(255,255,255,.8);margin-top:10px"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  © Sri Kumaran Childrens Home Educational Council · Security Operations Division<br>
+  Authorized administrative access only. This setup wizard will not be accessible once monitoring is activated.
+</div>
+
+<script>
+const _CSRF_TOKEN = {{ csrf_token | tojson }};
+function apiFetch(url, opts){
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  if(opts.method && opts.method.toUpperCase() !== 'GET'){
+    opts.headers['X-CSRF-Token'] = _CSRF_TOKEN;
+  }
+  return fetch(url, opts);
+}
+
+let pendingFile = null;
+
+function markStep(n, state){
+  // state: 'active' | 'done' | ''
+  const num = document.getElementById('sn'+n);
+  const lbl = document.getElementById('sl'+n);
+  if(!num) return;
+  num.className = 'step-num' + (state ? ' '+state : '');
+  if(lbl) lbl.className = 'step-label' + (state ? ' '+state : '');
+  if(state === 'done') num.textContent = '✓';
+}
+
+async function loadSetup(){
+  try{
+    const response = await fetch('/api/site-settings');
+    const data = await response.json();
+    document.getElementById('siteId').value = data.site_id || '';
+    document.getElementById('siteName').value = data.site_name || '';
+    document.getElementById('campus').value = data.campus || '';
+    document.getElementById('contactEmail').value = data.contact_email || '';
+    document.getElementById('centralUrl').value = data.api_url || '';
+    document.getElementById('centralKey').value = data.api_key || '';
+    if(data.site_id && data.site_name){ markStep(1,'done'); markStep(2,'active'); }
+    else { markStep(1,'active'); }
+  }catch(err){
+    document.getElementById('siteStatus').textContent = 'Could not load current settings.';
+  }
+}
+
+async function saveSite(evt){
+  evt.preventDefault();
+  const payload = {
+    site_id:       document.getElementById('siteId').value.trim(),
+    site_name:     document.getElementById('siteName').value.trim(),
+    campus:        document.getElementById('campus').value.trim(),
+    contact_email: document.getElementById('contactEmail').value.trim(),
+    api_url:       document.getElementById('centralUrl').value.trim(),
+    api_key:       document.getElementById('centralKey').value.trim(),
+  };
+  const status = document.getElementById('siteStatus');
+  status.textContent = 'Saving campus settings…';
+  status.className = 'status-msg';
+  try {
+    const res = await apiFetch('/api/site-settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    let result = {};
+    try { result = await res.json(); } catch(_) {}
+    if(!res.ok){
+      status.textContent = (result.error || 'Save failed. Check that Site ID and Site Name are filled in.') + ' (HTTP ' + res.status + ')';
+      status.className = 'status-msg err';
+      return;
+    }
+    status.textContent = '✓ Campus settings saved successfully.';
+    status.className = 'status-msg ok';
+    markStep(1,'done');
+    markStep(2,'active');
+  } catch(err) {
+    status.textContent = 'Network error — could not reach the server. (' + err.message + ')';
+    status.className = 'status-msg err';
+  }
+}
+
+async function previewUpload(evt){
+  const file = evt.target.files[0];
+  const preview = document.getElementById('previewArea');
+  const notice = document.getElementById('importStatus');
+  const importBtn = document.getElementById('importBtn');
+  pendingFile = file;
+  if(!file){
+    preview.style.display = 'none';
+    preview.innerHTML = '';
+    notice.textContent = '';
+    importBtn.style.display = 'none';
+    return;
+  }
+  notice.textContent = 'Validating file…';
+  notice.className = 'status-msg';
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await apiFetch('/api/bulk/preview', {method:'POST', body:fd});
+  const summary = await res.json();
+  preview.style.display = 'block';
+  if(!res.ok){
+    preview.innerHTML = `<div style="color:#b91c1c;font-weight:600">❌ ${summary.error || 'Preview failed'}</div>`;
+    notice.textContent = '';
+    notice.className = 'status-msg';
+    importBtn.style.display = 'none';
+    return;
+  }
+  const s = summary.summary || {};
+  preview.innerHTML =
+    `<div style="font-weight:700;color:#0f172a;margin-bottom:8px">📋 ${s.total||0} cameras found in "${file.name}"</div>` +
+    `<span class="preview-stat new">✚ ${s.new||0} new</span>` +
+    `<span class="preview-stat update">↻ ${s.updates||0} updates</span>` +
+    (s.warnings ? `<span class="preview-stat warn">⚠ ${s.warnings} warnings</span>` : '') +
+    (summary.errors && summary.errors.length ? `<div style="margin-top:8px;color:#b91c1c;font-size:11px">Errors: ${summary.errors.map(e=>`Row ${e.row}: ${e.text}`).join(' · ')}</div>` : '');
+  notice.textContent = summary.blocking ? 'Fix errors in the file before importing.' : 'Preview looks good — click Confirm Import to proceed.';
+  notice.className = summary.blocking ? 'status-msg err' : 'status-msg';
+  importBtn.style.display = summary.blocking ? 'none' : 'inline-flex';
+}
+
+async function importUpload(){
+  if(!pendingFile){ alert('Select a file first'); return; }
+  const fd = new FormData();
+  fd.append('file', pendingFile);
+  const notice = document.getElementById('importStatus');
+  notice.textContent = 'Importing cameras…';
+  notice.className = 'status-msg';
+  const res = await apiFetch('/api/bulk/import', {method:'POST', body:fd});
+  const result = await res.json();
+  if(!res.ok){
+    notice.textContent = result.error || 'Import failed.';
+    notice.className = 'status-msg err';
+    return;
+  }
+  notice.textContent = `✓ Import complete — ${result.added||0} cameras added, ${result.updated||0} updated.`;
+  notice.className = 'status-msg ok';
+  document.getElementById('importBtn').style.display = 'none';
+  markStep(2,'done');
+  markStep(3,'active');
+}
+
+async function finishSetup(){
+  const status = document.getElementById('finishStatus');
+  status.textContent = 'Activating monitoring…';
+  status.style.color = 'rgba(255,255,255,.8)';
+  try {
+    const res = await apiFetch('/api/setup/complete', {method:'POST'});
+    if(!res.ok){
+      let detail = '';
+      try { const j = await res.json(); detail = j.error || ''; } catch(_){}
+      status.style.color = '#fca5a5';
+      status.textContent = 'Could not activate monitoring'
+        + (detail ? ': ' + detail : '. Ensure Step 1 (Campus Identity) is saved and you are logged in as admin.')
+        + ' (HTTP ' + res.status + ')';
+      return;
+    }
+    status.style.color = '#86efac';
+    status.textContent = '✅ Monitoring activated. Redirecting to the dashboard…';
+    markStep(3,'done');
+    setTimeout(() => window.location.href = '/', 1200);
+  } catch(err) {
+    status.style.color = '#fca5a5';
+    status.textContent = 'Network error — could not reach the server. Check that the app is running. (' + err.message + ')';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadSetup);
+</script>
+</body>
+</html>

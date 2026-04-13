@@ -1,0 +1,14 @@
+api:
+  listen: 127.0.0.1:1984
+
+rtsp:
+  listen: 127.0.0.1:8554
+
+webrtc:
+  listen: 127.0.0.1:8555
+
+log:
+  level: info
+
+# CamMonitor registers camera streams dynamically through the local API.
+# Do not add stream URLs here unless you want permanent static streams.

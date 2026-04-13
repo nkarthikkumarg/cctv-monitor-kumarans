@@ -1,0 +1,15 @@
+{
+    auto_https off
+}
+
+:8080 {
+    encode zstd gzip
+
+    handle_path /go2rtc/* {
+        reverse_proxy 127.0.0.1:1984
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:5001
+    }
+}

@@ -1,0 +1,22 @@
+:8080 {
+    encode zstd gzip
+
+    # Security headers — applied to all responses
+    header {
+        X-Content-Type-Options        "nosniff"
+        X-Frame-Options               "SAMEORIGIN"
+        Referrer-Policy               "strict-origin-when-cross-origin"
+        X-XSS-Protection              "1; mode=block"
+        # Uncomment HSTS once you have confirmed HTTPS is working end-to-end:
+        # Strict-Transport-Security   "max-age=31536000; includeSubDomains"
+        -Server
+    }
+
+    handle_path /go2rtc/* {
+        reverse_proxy 127.0.0.1:1984
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:5001
+    }
+}

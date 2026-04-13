@@ -1,0 +1,19 @@
+[Unit]
+Description=CamMonitor Local CCTV Dashboard
+After=network-online.target go2rtc.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cammonitor
+Group=cammonitor
+WorkingDirectory=/opt/cam-monitor-v2
+Environment=PYTHONUNBUFFERED=1
+Environment=CAMMONITOR_STRICT_STARTUP=1
+ExecStart=/opt/cam-monitor-v2/.venv/bin/python /opt/cam-monitor-v2/run_local.py
+Restart=always
+RestartSec=5
+UMask=007
+
+[Install]
+WantedBy=multi-user.target

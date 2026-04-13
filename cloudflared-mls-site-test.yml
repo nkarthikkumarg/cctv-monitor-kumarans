@@ -1,0 +1,7 @@
+tunnel: 6ee231c3-00f3-4a71-9959-bffaac0ab38b
+credentials-file: /Users/karthik/.cloudflared/6ee231c3-00f3-4a71-9959-bffaac0ab38b.json
+
+ingress:
+  - hostname: mls-site-test.kumarans.in
+    service: http://127.0.0.1:8080
+  - service: http_status:404
