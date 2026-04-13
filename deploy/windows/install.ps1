@@ -156,11 +156,13 @@ function Register-StartupTask {
   $scriptAbs = (Resolve-Path $ScriptPath).Path
   $psExe = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
   $taskCmd = "`"$psExe`" -NoProfile -ExecutionPolicy Bypass -File `"$scriptAbs`""
-  schtasks /Create /F /SC ONLOGON /RL HIGHEST /TN $TaskName /TR $taskCmd | Out-Null
+  # Use ONSTART + SYSTEM user so services survive power failures without requiring login.
+  # /DELAY 30 gives the network adapter time to initialise after cold boot.
+  schtasks /Create /F /SC ONSTART /DELAY "0000:30" /RL HIGHEST /RU SYSTEM /TN $TaskName /TR $taskCmd | Out-Null
 }
 
 function Create-StartupTasks {
-  Write-Step "Creating startup tasks (ONLOGON)"
+  Write-Step "Creating startup tasks (ONSTART as SYSTEM)"
   Register-StartupTask -TaskName "CamMonitor-App" -ScriptPath (Join-Path $ScriptDir "run_cammonitor.ps1")
   Register-StartupTask -TaskName "CamMonitor-go2rtc" -ScriptPath (Join-Path $ScriptDir "run_go2rtc.ps1")
   Register-StartupTask -TaskName "CamMonitor-Caddy" -ScriptPath (Join-Path $ScriptDir "run_caddy.ps1")

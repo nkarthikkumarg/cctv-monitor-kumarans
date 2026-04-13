@@ -1,0 +1,15 @@
+[Unit]
+Description=Cloudflare Tunnel for CamMonitor
+After=network-online.target caddy.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cammonitor
+Group=cammonitor
+ExecStart=/usr/local/bin/cloudflared tunnel --config /opt/cctv-monitor-kumarans/deploy/linux/cloudflared.yml run
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

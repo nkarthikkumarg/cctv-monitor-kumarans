@@ -186,9 +186,22 @@ install_configs() {
     "${INSTALL_DIR}/deploy/linux/caddy.service" > /etc/systemd/system/caddy.service
 
   sed \
+    -e "s|/opt/cctv-monitor-kumarans|${INSTALL_DIR}|g" \
+    -e "s|User=cammonitor|User=${SERVICE_USER}|g" \
+    -e "s|Group=cammonitor|Group=${SERVICE_GROUP}|g" \
+    "${INSTALL_DIR}/deploy/linux/cloudflared.service" > /etc/systemd/system/cloudflared.service
+
+  sed \
     -e "s|:8080|:${PROXY_PORT}|g" \
     -e "s|127.0.0.1:5001|127.0.0.1:${APP_PORT}|g" \
     "${INSTALL_DIR}/deploy/linux/Caddyfile" > /etc/caddy/Caddyfile
+
+  # Copy cloudflared config template if no config exists yet
+  local cf_yml="${INSTALL_DIR}/deploy/linux/cloudflared.yml"
+  if [[ ! -f "${cf_yml}" ]]; then
+    cp "${INSTALL_DIR}/deploy/linux/cloudflared.yml.template" "${cf_yml}"
+    chown "${SERVICE_USER}:${SERVICE_GROUP}" "${cf_yml}"
+  fi
 
   chown -R "${SERVICE_USER}:${SERVICE_GROUP}" /etc/caddy "${INSTALL_DIR}"
 }
@@ -199,6 +212,8 @@ enable_services() {
   systemctl enable --now go2rtc
   systemctl enable --now cammonitor
   systemctl enable --now caddy
+  # Enable cloudflared but don't start it — the config template must be edited first
+  systemctl enable cloudflared
 }
 
 show_next_steps() {
@@ -231,8 +246,13 @@ Service checks:
   sudo systemctl status go2rtc
   sudo systemctl status caddy
 
-If you want public remote access later:
-  set up Cloudflare Tunnel to point the site hostname to http://127.0.0.1:${PROXY_PORT}
+For public remote access (Cloudflare Tunnel):
+  1. Install cloudflared:  curl -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x /usr/local/bin/cloudflared
+  2. Login:               cloudflared tunnel login
+  3. Create tunnel:       cloudflared tunnel create <site-name>
+  4. Edit config:         nano ${INSTALL_DIR}/deploy/linux/cloudflared.yml
+  5. Route DNS:           cloudflared tunnel route dns <site-name> <hostname>
+  6. Start the service:   sudo systemctl start cloudflared
 EOF
 }
 
