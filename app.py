@@ -106,16 +106,21 @@ def verify_sso_token(token):
         expected = hmac.new(CENTRAL_API_KEY.encode("utf-8"), payload_b64.encode("utf-8"), hashlib.sha256).digest()
         provided = _b64url_decode(signature_b64)
         if not hmac.compare_digest(expected, provided):
+            log.warning("SSO signature mismatch (local key starts with %s…)", CENTRAL_API_KEY[:8])
             return None
         payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
         exp = int(payload.get("exp") or 0)
-        if not exp or exp < int(datetime.now(timezone.utc).timestamp()):
+        now = int(datetime.now(timezone.utc).timestamp())
+        if not exp or exp < now:
+            log.warning("SSO token expired: exp=%s now=%s (delta=%ss)", exp, now, now - exp)
             return None
         username = (payload.get("username") or "").strip()
         if not username:
+            log.warning("SSO token has no username")
             return None
         return payload
-    except Exception:
+    except Exception as exc:
+        log.warning("SSO token parse error: %s", exc)
         return None
 
 
@@ -547,7 +552,7 @@ def verify_login_user(username, password):
 # ── Auth ──────────────────────────────────────────────────────────────────────
 @app.route("/login", methods=["GET","POST"])
 def login():
-    error = None
+    error = request.args.get("sso_error")
     csrf_token = _get_csrf_token()
     if request.method == "POST":
         u = request.form.get("username","")
@@ -579,24 +584,28 @@ def login():
 @app.route("/sso-login")
 def sso_login():
     import traceback as _tb
+    def _sso_fail(reason):
+        return redirect(url_for("login", sso_error=reason))
     try:
         token = request.args.get("token", "")
         log.debug("SSO attempt: token_present=%s central_api_key_len=%d", bool(token), len(CENTRAL_API_KEY))
+        if not token:
+            return _sso_fail("No SSO token provided.")
         payload = verify_sso_token(token)
         if not payload:
             log.warning("SSO failed: invalid or expired token (key=%s...)", CENTRAL_API_KEY[:6])
-            return redirect(url_for("login"))
+            return _sso_fail("SSO token is invalid or expired. Please try again from the central dashboard.")
         username = payload.get("username", "")
         log.debug("SSO token valid for username=%s role=%s", username, payload.get("role"))
         central_sync.sync_users()
         user = db.get_user_by_username(username)
         if not user:
             log.warning("SSO failed: username '%s' not found in local DB", username)
-            return redirect(url_for("login"))
+            return _sso_fail(f"User '{username}' not found on this site. Please sync users from the central dashboard.")
         if user.get("source") == "central":
             if not can_use_cached_central_user(user):
                 log.warning("SSO failed: central user '%s' cache expired or inactive", username)
-                return redirect(url_for("login"))
+                return _sso_fail(f"User '{username}' session has expired or is inactive. Please sync users.")
         elif not (
             user.get("source") == "local"
             and user.get("role") == "admin"
@@ -604,7 +613,7 @@ def sso_login():
             and (payload.get("role") or "").strip().lower() == "admin"
         ):
             log.warning("SSO failed: local user '%s' not eligible (source=%s role=%s)", username, user.get("source"), user.get("role"))
-            return redirect(url_for("login"))
+            return _sso_fail("Your account is not eligible for single sign-on at this site.")
         login_user(User(user))
         db.add_audit(
             actor_name(),
@@ -1273,6 +1282,34 @@ def api_site_settings():
     )
     central_sync.push_summary()
     return jsonify({"success": True, "settings": settings})
+
+
+@app.route("/api/site-settings/verify", methods=["POST"])
+@login_required
+@role_required("admin")
+def api_verify_site_settings():
+    """Save + verify: push a summary to central to confirm the API key works."""
+    settings = get_site_settings()
+    api_key = (settings.get("api_key") or "").strip()
+    if not api_key or api_key == "local-dev-key":
+        return jsonify({"error": "No API key configured. Paste the key from the central dashboard's Manage Sites page and save first."}), 400
+    api_url = (settings.get("api_url") or "").strip()
+    if not api_url:
+        return jsonify({"error": "Central API URL is missing. Set it and save first."}), 400
+    ok = central_sync.push_summary()
+    if ok:
+        db.add_audit(
+            actor_name(), "config",
+            f"Verified central connection for {settings['site_name']}",
+            settings["site_id"], request.remote_addr, "success"
+        )
+        return jsonify({
+            "success": True,
+            "message": f"Connection verified! Site '{settings['site_name']}' is synced with the central dashboard. SSO will work.",
+        })
+    status = central_sync.get_status()
+    err = status.get("last_error") or "Central sync failed"
+    return jsonify({"error": f"Could not reach the central dashboard: {err}. Check the API URL and API key."}), 502
 
 
 @app.route("/api/site-settings/register", methods=["POST"])
@@ -2068,13 +2105,15 @@ td{padding:9px 12px}
           </div>
           <div class="form-field full">
             <label for="siteApiKey">Central API Key</label>
-            <input id="siteApiKey" name="api_key" placeholder="Shared secret for central sync">
+            <input id="siteApiKey" name="api_key" placeholder="Paste the API key from the central dashboard">
+            <small style="color:#64748b;margin-top:4px;display:block">Copy the API key from the central dashboard's Manage Sites page and paste it here, then click Save &amp; Verify.</small>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:10px">
           <span id="siteSettingsMsg" style="font-size:12px;color:#888"></span>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button type="button" class="btn" id="registerSiteBtn" onclick="registerThisSite()">Register This Site</button>
+            <button type="button" class="btn" id="verifySiteBtn" onclick="saveAndVerifySite()" style="background:#0f766e;color:#fff;border-color:#0f766e">Save &amp; Verify</button>
             <button type="button" class="btn" onclick="closeSiteSettingsModal()">Cancel</button>
             <button type="submit" class="btn" style="background:#2c3e50;color:#fff;border-color:#2c3e50">Save Site Details</button>
           </div>
@@ -2637,10 +2676,15 @@ async function openSiteSettingsModal(){
   document.getElementById('siteApiUrl').value=d.api_url || '';
   document.getElementById('siteApiKey').value=d.api_key || '';
   const regBtn=document.getElementById('registerSiteBtn');
+  const verBtn=document.getElementById('verifySiteBtn');
+  const hasKey=d.api_key && d.api_key !== 'local-dev-key';
   if(regBtn){
-    regBtn.textContent=(d.api_key && d.api_key !== 'local-dev-key') ? 'Re-register Site' : 'Register This Site';
+    regBtn.textContent=hasKey ? 'Re-register Site' : 'Register This Site';
   }
-  msg.textContent='Edit and save when you are ready.';
+  if(verBtn){
+    verBtn.style.display=hasKey ? '' : 'none';
+  }
+  msg.textContent=hasKey ? 'API key is set. You can Save & Verify to test the connection.' : 'Paste the API key from the central dashboard and click Save & Verify.';
 }
 function closeSiteSettingsModal(){
   document.getElementById('siteSettingsModal').classList.remove('show');
@@ -2709,6 +2753,38 @@ async function registerThisSite(){
   regBtn.disabled=false;
   msg.style.color='#27ae60';
   msg.textContent=d.message || 'Site registered with central dashboard and API key saved.';
+}
+async function saveAndVerifySite(){
+  const msg=document.getElementById('siteSettingsMsg');
+  const verBtn=document.getElementById('verifySiteBtn');
+  verBtn.disabled=true;
+  msg.style.color='#888';
+  msg.textContent='Saving settings...';
+  const form=document.getElementById('siteSettingsForm');
+  const fd=new FormData(form);
+  const payload=Object.fromEntries(fd.entries());
+  payload.enabled=document.getElementById('siteEnabled').checked;
+  const saveR=await apiFetch('/api/site-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(!saveR.ok){
+    verBtn.disabled=false;
+    const sd=await saveR.json();
+    msg.style.color='#c0392b';
+    msg.textContent=sd.error || 'Could not save settings';
+    return;
+  }
+  msg.textContent='Verifying connection to central dashboard...';
+  const r=await apiFetch('/api/site-settings/verify',{method:'POST'});
+  const d=await r.json();
+  verBtn.disabled=false;
+  if(!r.ok){
+    msg.style.color='#c0392b';
+    msg.textContent=d.error || 'Verification failed';
+    return;
+  }
+  const regBtn=document.getElementById('registerSiteBtn');
+  if(regBtn) regBtn.textContent='Re-register Site';
+  msg.style.color='#27ae60';
+  msg.textContent=d.message || 'Connection verified! SSO and sync are working.';
 }
 
 function renderRecipientRows(){

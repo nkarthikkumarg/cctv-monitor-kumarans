@@ -413,7 +413,10 @@ def _b64url_encode(data):
 
 def build_site_sso_url(site, user):
     dashboard_url = (site.get("dashboard_url") or "").strip()
-    site_api_key = (site.get("site_api_key") or "").strip()
+    # Prefer the authoritative registered key over the synced key so SSO
+    # stays in sync with whatever key the local server was given at
+    # registration, even before the next successful push_summary.
+    site_api_key = (site.get("registered_api_key") or site.get("site_api_key") or "").strip()
     if not dashboard_url or not site_api_key or not user:
         return dashboard_url
     now = int(datetime.now(timezone.utc).timestamp())
@@ -422,7 +425,7 @@ def build_site_sso_url(site, user):
         "display_name": user.get("display_name") or user["username"],
         "role": user.get("role") or "viewer",
         "iat": now,
-        "exp": now + 90,
+        "exp": now + 300,
     }
     payload_b64 = _b64url_encode(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8"))
     signature = hmac.new(site_api_key.encode("utf-8"), payload_b64.encode("utf-8"), hashlib.sha256).digest()
@@ -433,10 +436,16 @@ def build_site_sso_url(site, user):
 def trigger_user_sync_for_sites():
     results = []
     with get_db() as conn:
-        rows = db_fetchall(conn, "SELECT site_id, site_name, dashboard_url, site_api_key FROM site_summaries ORDER BY site_name")
+        rows = db_fetchall(conn, """
+            SELECT s.site_id, s.site_name, s.dashboard_url, s.site_api_key,
+                   r.api_key AS registered_api_key
+            FROM site_summaries s
+            LEFT JOIN site_registrations r ON s.site_id = r.site_id
+            ORDER BY s.site_name
+        """)
     for row in rows:
         dashboard_url = (row.get("dashboard_url") or "").strip()
-        api_key = row.get("site_api_key") or ""
+        api_key = row.get("registered_api_key") or row.get("site_api_key") or ""
         if not dashboard_url:
             results.append({"site_id": row["site_id"], "success": False, "error": "No dashboard URL"})
             continue
@@ -595,9 +604,15 @@ def delete_site_summary(site_id):
 def api_sites():
     user = current_central_user()
     with get_db() as conn:
-        rows = db_fetchall(conn, "SELECT * FROM site_summaries ORDER BY COALESCE(campus, ''), site_name")
+        rows = db_fetchall(conn, """
+            SELECT s.*, r.api_key AS registered_api_key
+            FROM site_summaries s
+            LEFT JOIN site_registrations r ON s.site_id = r.site_id
+            ORDER BY COALESCE(s.campus, ''), s.site_name
+        """)
     for row in rows:
         row["sso_url"] = build_site_sso_url(row, user)
+        row.pop("registered_api_key", None)
     return jsonify(rows)
 
 
