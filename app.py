@@ -773,6 +773,37 @@ def api_camera_live_mjpeg(ip):
     return Response(stream_with_context(generate()), content_type=content_type, headers=headers)
 
 
+@app.route("/api/camera/<ip>/warm", methods=["POST"])
+@login_required
+def api_warm_camera(ip):
+    """Pre-warm the go2rtc RTSP connection for a camera.
+
+    Called on hover/click before the player iframe loads. Triggers go2rtc to
+    open the RTSP connection immediately so WebRTC negotiation can start sooner,
+    reducing time-to-first-frame from ~2-3s to ~0.5-1s.
+    Returns immediately — the actual warm-up happens in a background thread.
+    """
+    cam = db.get_camera(ip)
+    if not cam:
+        return jsonify({"ok": False}), 404
+    urls = get_go2rtc_urls(cam)
+    if not urls:
+        return jsonify({"ok": False}), 404
+    mjpeg_url = urls["upstream_mjpeg"]
+
+    def _do_warm():
+        try:
+            # A short read is enough to trigger go2rtc's RTSP connection.
+            # Timeout intentionally short — we just need to wake the stream.
+            with urllib.request.urlopen(mjpeg_url, timeout=2) as resp:
+                resp.read(4096)
+        except Exception:
+            pass  # timeout / error expected — go2rtc is now connecting in background
+
+    threading.Thread(target=_do_warm, daemon=True).start()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/camera/<ip>/snapshot.jpg")
 @login_required
 def api_camera_snapshot(ip):
@@ -2573,7 +2604,7 @@ async function loadCameras(){
           ${cams.map(c=>{
             const h=hc(c.health_7d||100),b=bc(c.brand),s=ts(c);
             const sel=selIps.has(c.ip)?'selected':'';
-            return `<tr class="${s} ${sel}" data-row-ip="${escHtml(c.ip)}" onclick="openModal('${escHtml(c.ip)}')">
+            return `<tr class="${s} ${sel}" data-row-ip="${escHtml(c.ip)}" onmouseenter="warmCamera('${escHtml(c.ip)}')" onclick="openModal('${escHtml(c.ip)}')">
               <td><input type="checkbox" class="row-check" ${selIps.has(c.ip)?'checked':''} onclick="event.stopPropagation();toggleSel('${escHtml(c.ip)}')"></td>
               <td><span class="status-pill ${s}"><span class="dot" style="background:${dc(c)}"></span>${s}</span></td>
               <td><div class="tn">${escHtml(c.name)||'—'}</div><div class="tip">${escHtml(c.location)||''}</div></td>
@@ -3186,7 +3217,13 @@ function renderMainModal(c){
   document.getElementById('mEv').innerHTML=ev||'<div style="color:#aaa;font-size:11px">No events recorded yet</div>';
   document.getElementById('ov').classList.add('show');
 }
+function warmCamera(ip){
+  // Fire-and-forget: tells go2rtc to open the RTSP connection now,
+  // so it's ready by the time the player iframe loads.
+  apiFetch('/api/camera/'+encodeURIComponent(ip)+'/warm',{method:'POST'}).catch(()=>{});
+}
 async function openModal(ip){
+  warmCamera(ip); // start RTSP warm-up immediately, parallel to API fetch
   const r=await fetch('/api/camera/'+ip);
   const c=await r.json();
   renderMainModal(c);
