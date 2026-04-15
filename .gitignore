@@ -1,0 +1,18 @@
+# SQLite databases — created fresh on install via init_db()
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Secrets / local overrides
+.env
