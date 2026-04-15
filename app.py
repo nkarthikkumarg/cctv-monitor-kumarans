@@ -1529,12 +1529,15 @@ def api_add_camera():
         "notes": (data.get("notes") or "").strip(),
         "rtsp_url": (data.get("rtsp_url") or "").strip(),
     }
-    if original_ip and db.get_camera(original_ip):
-        existing = db.get_camera(original_ip)
-        db.update_camera(original_ip, payload)
-    else:
-        existing = db.get_camera(ip)
-        db.upsert_camera(payload)
+    try:
+        if original_ip and db.get_camera(original_ip):
+            existing = db.get_camera(original_ip)
+            db.update_camera(original_ip, payload)
+        else:
+            existing = db.get_camera(ip)
+            db.upsert_camera(payload)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 409
     db.add_audit(
         actor_name(),
         "config",
