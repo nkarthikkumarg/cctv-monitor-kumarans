@@ -3009,12 +3009,20 @@ async function submitCameraForm(event){
   payload.nvr_channel=parseInt(payload.nvr_channel || '1', 10);
   msg.style.color='#888';
   msg.textContent='Saving camera...';
-  const r=await apiFetch('/api/camera',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
-  });
-  const d=await r.json();
+  let r, d;
+  try {
+    r=await apiFetch('/api/camera',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    d=await r.json();
+  } catch(err) {
+    msg.style.color='#c0392b';
+    // Likely session expired — server redirected to login page (HTML, not JSON)
+    msg.textContent='Session expired or network error. Please reload the page and log in again.';
+    return;
+  }
   if(!r.ok){
     msg.style.color='#c0392b';
     msg.textContent=d.error || 'Could not save camera';
@@ -4658,7 +4666,7 @@ if __name__ == "__main__":
         monitor.start_scheduler()
         log.info("Starting CamMonitor on http://%s:%d", WEB_HOST, WEB_PORT)
     try:
-        app.run(host=WEB_HOST, port=WEB_PORT, debug=False, use_reloader=True)
+        app.run(host=WEB_HOST, port=WEB_PORT, debug=False, use_reloader=True, threaded=True)
     finally:
         if not _reloader_parent:
             monitor.stop_scheduler()
