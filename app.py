@@ -2698,7 +2698,7 @@ async function saveSiteSettings(event){
   payload.enabled=document.getElementById('siteEnabled').checked;
   msg.style.color='#888';
   msg.textContent='Saving site settings...';
-  const r=await fetch('/api/site-settings',{
+  const r=await apiFetch('/api/site-settings',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(payload)
