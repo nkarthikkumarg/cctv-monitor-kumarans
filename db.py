@@ -348,9 +348,13 @@ def update_camera(original_ip, data):
                 conflict = conn.execute("SELECT ip FROM cameras WHERE ip=? AND active=1", (new_ip,)).fetchone()
                 if conflict:
                     raise ValueError("Another camera already uses this IP address")
-                # Purge any soft-deleted record at new_ip (cameras + status orphan)
+                # Purge soft-deleted camera + all orphaned rows for new_ip across
+                # every table that has an ip FK, so the subsequent UPDATE doesn't
+                # hit UNIQUE constraint violations.
                 conn.execute("DELETE FROM cameras WHERE ip=? AND active=0", (new_ip,))
-                conn.execute("DELETE FROM status WHERE ip=? AND ip NOT IN (SELECT ip FROM cameras WHERE active=1)", (new_ip,))
+                conn.execute("DELETE FROM status WHERE ip=?", (new_ip,))
+                conn.execute("DELETE FROM events WHERE ip=?", (new_ip,))
+                conn.execute("DELETE FROM daily_snapshots WHERE ip=?", (new_ip,))
                 conn.execute("UPDATE cameras SET ip=? WHERE ip=?", (new_ip, original_ip))
                 conn.execute("UPDATE status SET ip=? WHERE ip=?", (new_ip, original_ip))
                 conn.execute("UPDATE events SET ip=? WHERE ip=?", (new_ip, original_ip))
