@@ -448,21 +448,17 @@ def record_came_online(ip, now_str):
     with _lock:
         with get_db() as conn:
             row = conn.execute("SELECT offline_since FROM status WHERE ip=?", (ip,)).fetchone()
-            duration_s, downtime_min = None, 0
+            duration_s = None
             if row and row["offline_since"]:
                 try:
                     duration_s = int((datetime.fromisoformat(now_str) - datetime.fromisoformat(row["offline_since"])).total_seconds())
-                    downtime_min = max(1, duration_s // 60)
                 except Exception:
                     pass
             conn.execute("UPDATE status SET online=1, last_seen=?, offline_since=NULL WHERE ip=?", (now_str, ip))
             conn.execute("INSERT INTO events (ip, event, ts, duration_s) VALUES (?,?,?,?)", (ip, "online", now_str, duration_s))
-            today = now_str[:10]
-            conn.execute("""
-                INSERT INTO daily_snapshots (date, ip, downtime_min, total_checks, offline_events)
-                VALUES (?,?,?,0,0)
-                ON CONFLICT(date, ip) DO UPDATE SET downtime_min = downtime_min + ?
-            """, (today, ip, downtime_min, downtime_min))
+            # NOTE: downtime_min is NOT written here. tick_downtime() accumulates it
+            # incrementally each poll while the camera is offline, so we avoid
+            # double-counting the outage duration on recovery.
 
 def update_last_seen(ip, now_str):
     with get_db() as conn:
@@ -476,6 +472,23 @@ def tick_daily_check(ip):
             VALUES (?,?,1,0,0)
             ON CONFLICT(date, ip) DO UPDATE SET total_checks = total_checks + 1
         """, (today, ip))
+
+def tick_downtime(ip, minutes: int):
+    """Accumulate downtime while a camera is offline, one poll interval at a time.
+
+    Called each poll cycle for cameras that are currently offline so that
+    downtime_min reflects the ongoing outage in real time — not just after
+    the camera recovers (which is when record_came_online writes the lump sum).
+    """
+    if minutes <= 0:
+        return
+    today = datetime.now().strftime("%Y-%m-%d")
+    with get_db() as conn:
+        conn.execute("""
+            INSERT INTO daily_snapshots (date, ip, total_checks, offline_events, downtime_min)
+            VALUES (?,?,0,0,?)
+            ON CONFLICT(date, ip) DO UPDATE SET downtime_min = downtime_min + ?
+        """, (today, ip, minutes, minutes))
 
 def mark_alert_sent(ip, alert_type="offline"):
     now = datetime.now().isoformat()

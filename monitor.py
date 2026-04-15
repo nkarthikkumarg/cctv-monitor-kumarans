@@ -157,6 +157,12 @@ def poll_all():
                 # else: still failing but not yet confirmed, or already offline
                 # → nothing written to DB
 
+                # Accumulate downtime in real time while camera is confirmed offline.
+                # Without this, downtime_min is only written on recovery, causing the
+                # health % to stay at 100% for the duration of an ongoing outage.
+                if not st["online"]:
+                    db.tick_downtime(ip, POLL_INTERVAL // 60 or 1)
+
             # Always tick daily check counter (one write per camera per poll)
             db.tick_daily_check(ip)
 
