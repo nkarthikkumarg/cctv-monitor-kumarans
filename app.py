@@ -570,7 +570,8 @@ def login():
         user = verify_login_user(u, p)
         if user:
             _clear_login_attempts(ip)
-            login_user(User(user))
+            session.permanent = True
+            login_user(User(user), remember=True)
             db.add_audit(u, "login", "User logged in successfully", "System", ip, "success")
             if not SETUP_COMPLETE:
                 return redirect(url_for("setup"))
@@ -614,7 +615,8 @@ def sso_login():
         ):
             log.warning("SSO failed: local user '%s' not eligible (source=%s role=%s)", username, user.get("source"), user.get("role"))
             return _sso_fail("Your account is not eligible for single sign-on at this site.")
-        login_user(User(user))
+        session.permanent = True
+        login_user(User(user), remember=True)
         db.add_audit(
             actor_name(),
             "login",
@@ -3016,11 +3018,24 @@ async function submitCameraForm(event){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)
     });
+    // If session expired, @login_required redirects to /login (HTML).
+    // Detect this before trying to parse JSON.
+    if(r.url && r.url.includes('/login')){
+      msg.style.color='#c0392b';
+      msg.textContent='Session expired — please reload the page and log in again.';
+      return;
+    }
+    const ct=r.headers.get('Content-Type')||'';
+    if(!ct.includes('application/json')){
+      msg.style.color='#c0392b';
+      msg.textContent='Unexpected server response. Please reload and try again.';
+      return;
+    }
     d=await r.json();
   } catch(err) {
     msg.style.color='#c0392b';
-    // Likely session expired — server redirected to login page (HTML, not JSON)
-    msg.textContent='Session expired or network error. Please reload the page and log in again.';
+    msg.textContent='Network error — could not reach server. Is the local server running?';
+    console.error('Camera save error:', err);
     return;
   }
   if(!r.ok){
