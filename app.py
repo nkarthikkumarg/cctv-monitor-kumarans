@@ -3030,8 +3030,10 @@ async function submitCameraForm(event){
     }
     const ct=r.headers.get('Content-Type')||'';
     if(!ct.includes('application/json')){
+      const body=await r.text().catch(()=>'(unreadable)');
       msg.style.color='#c0392b';
-      msg.textContent='Unexpected server response. Please reload and try again.';
+      msg.textContent=`Server error (HTTP ${r.status}): ${body.slice(0,200)}`;
+      console.error('Non-JSON camera save response:', r.status, r.url, body);
       return;
     }
     d=await r.json();
