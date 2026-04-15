@@ -7,7 +7,7 @@ Key principle:
   - tick_daily_check() increments total_checks counter once per poll per camera
   - No row is inserted or updated in the DB for every ping result
 """
-import subprocess, platform, logging, configparser, os
+import subprocess, platform, logging, configparser, os, time
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -66,6 +66,9 @@ def reschedule_jobs():
 _state = {}
 # { nvr_ip: { "online": bool, "fail_streak": int } }
 _nvr_state = {}
+# Throttle: last_seen and health_pct written at most once per 60s, not every poll
+_LAZY_FLUSH_INTERVAL = 60  # seconds
+_last_lazy_flush: float = 0.0
 
 def _init_state():
     """Load current DB status into memory on startup."""
@@ -174,12 +177,17 @@ def poll_all():
                     offline_downtime_pairs.append((ip, POLL_INTERVAL // 60 or 1))
 
     # ── Bulk DB writes — single transaction each regardless of camera count ──
-    db.update_last_seen_bulk(still_online_ips, now)
+    global _last_lazy_flush
     db.tick_downtime_bulk(offline_downtime_pairs)
     db.tick_daily_checks_bulk([cam["ip"] for cam in cameras])
 
-    # Recompute health % from today's snapshot (fast aggregation)
-    db.compute_uptime_pcts()
+    # last_seen and health_pct: throttled to once per 60s — no need to write
+    # every 10s poll since the values are only displayed in the UI.
+    now_mono = time.monotonic()
+    if now_mono - _last_lazy_flush >= _LAZY_FLUSH_INTERVAL:
+        db.update_last_seen_bulk(still_online_ips, now)
+        db.compute_uptime_pcts()
+        _last_lazy_flush = now_mono
 
     # ── NVR ping ─────────────────────────────────────────────────────────────
     nvr_list = db.get_unique_nvr_ips()
