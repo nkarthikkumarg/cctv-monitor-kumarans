@@ -190,7 +190,6 @@ def get_go2rtc_source(cam):
         cam.get("brand", ""),
         cam.get("username", ""),
         cam.get("password", ""),
-        cam.get("nvr_channel", 1),
     )
     return urls.get("rtsp", "")
 
@@ -718,7 +717,7 @@ def api_camera_detail(ip):
     cam = db.get_camera(ip)
     if not cam: return jsonify({"error": "Not found"}), 404
     cam["history"] = db.get_camera_history(ip, 10)
-    urls = get_stream_urls(ip, cam.get("brand",""), cam.get("username",""), cam.get("password",""), cam.get("nvr_channel",1))
+    urls = get_stream_urls(ip, cam.get("brand",""), cam.get("username",""), cam.get("password",""))
     if cam.get("rtsp_url"):
         urls["rtsp"] = normalize_rtsp_url(cam["rtsp_url"])
     go2rtc_urls = get_go2rtc_urls(cam)
@@ -816,7 +815,6 @@ def api_camera_snapshot(ip):
         cam.get("brand", ""),
         cam.get("username", ""),
         cam.get("password", ""),
-        cam.get("nvr_channel", 1),
     ).get("snapshot", "")
     if not snapshot_url:
         return jsonify({"error": "Snapshot unavailable"}), 503

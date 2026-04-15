@@ -28,27 +28,33 @@ def normalize_rtsp_url(url):
     safe_auth = build_auth(unquote(username), unquote(password))[:-1]
     return urlunsplit((parsed.scheme, f"{safe_auth}@{host}", parsed.path, parsed.query, parsed.fragment))
 
-def get_stream_urls(ip, brand, username, password, channel=1):
+def get_stream_urls(ip, brand, username, password):
+    """Build brand-specific stream URLs.
+
+    All streams target the camera's own IP directly.
+    RTSP always uses channel=1 (cameras accessed direct, not via NVR).
+    HTTP snapshot/MJPEG also use channel=1 for the same reason.
+    """
     brand = (brand or "").lower()
     cred = build_auth(username, password)
 
     if brand == "hikvision":
         return {
-            "mjpeg": f"http://{cred}{ip}/ISAPI/Streaming/channels/{channel}01/httppreview",
-            "snapshot": f"http://{cred}{ip}/ISAPI/Streaming/channels/{channel}01/picture",
-            "rtsp": f"rtsp://{cred}{ip}:554/Streaming/Channels/{channel}01",
+            "mjpeg": f"http://{cred}{ip}/ISAPI/Streaming/channels/101/httppreview",
+            "snapshot": f"http://{cred}{ip}/ISAPI/Streaming/channels/101/picture",
+            "rtsp": f"rtsp://{cred}{ip}:554/Streaming/Channels/101",
         }
     elif brand == "dahua":
         return {
-            "mjpeg": f"http://{cred}{ip}/cgi-bin/mjpg/video.cgi?channel={channel}&subtype=1",
-            "snapshot": f"http://{cred}{ip}/cgi-bin/snapshot.cgi?channel={channel}",
-            "rtsp": f"rtsp://{cred}{ip}:554/cam/realmonitor?channel={channel}&subtype=0",
+            "mjpeg": f"http://{cred}{ip}/cgi-bin/mjpg/video.cgi?channel=1&subtype=1",
+            "snapshot": f"http://{cred}{ip}/cgi-bin/snapshot.cgi?channel=1",
+            "rtsp": f"rtsp://{cred}{ip}:554/cam/realmonitor?channel=1&subtype=0",
         }
     elif brand == "prama":
         return {
-            "mjpeg": f"http://{cred}{ip}/ISAPI/Streaming/channels/{channel}01/httppreview",
-            "snapshot": f"http://{cred}{ip}/onvif/snapshot?channel={channel}",
-            "rtsp": f"rtsp://{cred}{ip}:554/Streaming/Channels/{channel}01",
+            "mjpeg": f"http://{cred}{ip}/ISAPI/Streaming/channels/101/httppreview",
+            "snapshot": f"http://{cred}{ip}/onvif/snapshot?channel=1",
+            "rtsp": f"rtsp://{cred}{ip}:554/Streaming/Channels/101",
         }
     else:
         return {
@@ -57,6 +63,6 @@ def get_stream_urls(ip, brand, username, password, channel=1):
             "rtsp": f"rtsp://{cred}{ip}:554/stream",
         }
 
-def get_preview_url(ip, brand, username, password, channel=1):
-    urls = get_stream_urls(ip, brand, username, password, channel)
+def get_preview_url(ip, brand, username, password):
+    urls = get_stream_urls(ip, brand, username, password)
     return urls["mjpeg"], urls["snapshot"]
