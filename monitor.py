@@ -118,6 +118,10 @@ def poll_all():
     newly_offline, newly_recovered = [], []
     alertable_offline, alertable_recovered = [], []
 
+    # Collected for bulk DB writes after the poll loop
+    still_online_ips = []          # update last_seen only
+    offline_downtime_pairs = []    # (ip, minutes) for confirmed-offline cameras
+
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
         futures = {ex.submit(_ping, cam["ip"]): cam for cam in cameras}
         for future in as_completed(futures):
@@ -144,8 +148,8 @@ def poll_all():
                     if was_alerted:
                         alertable_recovered.append(cam)
                 else:
-                    # Still online — just update last_seen (lightweight)
-                    db.update_last_seen(ip, now)
+                    # Still online — defer last_seen update to bulk write
+                    still_online_ips.append(ip)
 
             else:
                 # ── Camera not responding ────────────────────────────────────
@@ -165,14 +169,14 @@ def poll_all():
                 # else: still failing but not yet confirmed, or already offline
                 # → nothing written to DB
 
-                # Accumulate downtime in real time while camera is confirmed offline.
-                # Without this, downtime_min is only written on recovery, causing the
-                # health % to stay at 100% for the duration of an ongoing outage.
+                # Accumulate downtime — defer to bulk write below
                 if not st["online"]:
-                    db.tick_downtime(ip, POLL_INTERVAL // 60 or 1)
+                    offline_downtime_pairs.append((ip, POLL_INTERVAL // 60 or 1))
 
-            # Always tick daily check counter (one write per camera per poll)
-            db.tick_daily_check(ip)
+    # ── Bulk DB writes — single transaction each regardless of camera count ──
+    db.update_last_seen_bulk(still_online_ips, now)
+    db.tick_downtime_bulk(offline_downtime_pairs)
+    db.tick_daily_checks_bulk([cam["ip"] for cam in cameras])
 
     # Recompute health % from today's snapshot (fast aggregation)
     db.compute_uptime_pcts()

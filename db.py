@@ -471,6 +471,16 @@ def update_last_seen(ip, now_str):
     with get_db() as conn:
         conn.execute("UPDATE status SET last_seen=?, online=1 WHERE ip=?", (now_str, ip))
 
+def update_last_seen_bulk(ips, now_str):
+    """Update last_seen for all still-online cameras in a single transaction."""
+    if not ips:
+        return
+    with get_db() as conn:
+        conn.executemany(
+            "UPDATE status SET last_seen=?, online=1 WHERE ip=?",
+            [(now_str, ip) for ip in ips]
+        )
+
 def tick_daily_check(ip):
     today = datetime.now().strftime("%Y-%m-%d")
     with get_db() as conn:
@@ -479,6 +489,18 @@ def tick_daily_check(ip):
             VALUES (?,?,1,0,0)
             ON CONFLICT(date, ip) DO UPDATE SET total_checks = total_checks + 1
         """, (today, ip))
+
+def tick_daily_checks_bulk(ips):
+    """Increment total_checks for all IPs in a single transaction. O(1) transactions regardless of count."""
+    if not ips:
+        return
+    today = datetime.now().strftime("%Y-%m-%d")
+    with get_db() as conn:
+        conn.executemany("""
+            INSERT INTO daily_snapshots (date, ip, total_checks, offline_events, downtime_min)
+            VALUES (?,?,1,0,0)
+            ON CONFLICT(date, ip) DO UPDATE SET total_checks = total_checks + 1
+        """, [(today, ip) for ip in ips])
 
 def tick_downtime(ip, minutes: int):
     """Accumulate downtime while a camera is offline, one poll interval at a time.
@@ -496,6 +518,18 @@ def tick_downtime(ip, minutes: int):
             VALUES (?,?,0,0,?)
             ON CONFLICT(date, ip) DO UPDATE SET downtime_min = downtime_min + ?
         """, (today, ip, minutes, minutes))
+
+def tick_downtime_bulk(ip_minutes_pairs):
+    """Accumulate downtime for multiple offline cameras in a single transaction."""
+    if not ip_minutes_pairs:
+        return
+    today = datetime.now().strftime("%Y-%m-%d")
+    with get_db() as conn:
+        conn.executemany("""
+            INSERT INTO daily_snapshots (date, ip, total_checks, offline_events, downtime_min)
+            VALUES (?,?,0,0,?)
+            ON CONFLICT(date, ip) DO UPDATE SET downtime_min = downtime_min + ?
+        """, [(today, ip, m, m) for ip, m in ip_minutes_pairs if m > 0])
 
 def mark_alert_sent(ip, alert_type="offline"):
     now = datetime.now().isoformat()
@@ -530,9 +564,9 @@ def compute_uptime_pcts():
         rows = conn.execute(
             "SELECT ip, total_checks, downtime_min FROM daily_snapshots WHERE date=?", (today,)
         ).fetchall()
-        for row in rows:
-            pct = _calc_uptime_pct(row["total_checks"], row["downtime_min"])
-            conn.execute("UPDATE status SET health_pct=? WHERE ip=?", (pct, row["ip"]))
+        pairs = [(_calc_uptime_pct(r["total_checks"], r["downtime_min"]), r["ip"]) for r in rows]
+        if pairs:
+            conn.executemany("UPDATE status SET health_pct=? WHERE ip=?", pairs)
 
 def get_camera_history(ip, limit=20):
     with get_db() as conn:
