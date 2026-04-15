@@ -102,6 +102,13 @@ def init_db():
                 CREATE INDEX IF NOT EXISTS idx_snapshots_ip   ON daily_snapshots(ip);
                 CREATE INDEX IF NOT EXISTS idx_audit_ts       ON audit(ts);
                 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+                CREATE TABLE IF NOT EXISTS nvr_status (
+                    nvr_ip TEXT PRIMARY KEY,
+                    nvr_name TEXT,
+                    online INTEGER DEFAULT 1,
+                    last_seen TEXT,
+                    offline_since TEXT
+                );
             """)
             cols = [r["name"] for r in conn.execute("PRAGMA table_info(cameras)").fetchall()]
             if "nvr_ip" not in cols:
@@ -692,6 +699,54 @@ def get_report_nvr_summary(date_from, date_to):
             GROUP BY COALESCE(c.nvr_name, 'Unassigned')
             ORDER BY downtime_min DESC, offline_events DESC, nvr_name ASC
         """, (date_from, date_to)).fetchall()]
+
+
+def get_unique_nvr_ips():
+    """Return list of {nvr_ip, nvr_name} for all active cameras with an nvr_ip set."""
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT DISTINCT
+                TRIM(nvr_ip) as nvr_ip,
+                COALESCE(NULLIF(TRIM(nvr_name), ''), TRIM(nvr_ip)) as nvr_name
+            FROM cameras
+            WHERE active=1 AND TRIM(COALESCE(nvr_ip,'')) != ''
+            ORDER BY nvr_name
+        """).fetchall()
+        return [dict(r) for r in rows]
+
+
+def upsert_nvr_status(nvr_ip, nvr_name, online, now):
+    """Update NVR ping state. Called each poll cycle by monitor."""
+    with get_db() as conn:
+        existing = conn.execute(
+            "SELECT online, offline_since FROM nvr_status WHERE nvr_ip=?", (nvr_ip,)
+        ).fetchone()
+        if existing is None:
+            offline_since = None if online else now
+            conn.execute(
+                "INSERT INTO nvr_status (nvr_ip, nvr_name, online, last_seen, offline_since) VALUES (?,?,?,?,?)",
+                (nvr_ip, nvr_name, 1 if online else 0, now if online else None, offline_since),
+            )
+        else:
+            was_online = bool(existing["online"])
+            if online:
+                conn.execute(
+                    "UPDATE nvr_status SET nvr_name=?, online=1, last_seen=?, offline_since=NULL WHERE nvr_ip=?",
+                    (nvr_name, now, nvr_ip),
+                )
+            else:
+                offline_since = existing["offline_since"] or (now if was_online else None)
+                conn.execute(
+                    "UPDATE nvr_status SET nvr_name=?, online=0, offline_since=? WHERE nvr_ip=?",
+                    (nvr_name, offline_since, nvr_ip),
+                )
+
+
+def get_nvr_status_map():
+    """Return {nvr_ip: {online, last_seen, offline_since}} from DB."""
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM nvr_status").fetchall()
+        return {r["nvr_ip"]: dict(r) for r in rows}
 
 
 def get_nvr_endpoints():

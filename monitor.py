@@ -64,6 +64,8 @@ def reschedule_jobs():
 # ── In-memory state (never written to DB per-ping) ────────────────────────────
 # { ip: { "online": bool, "fail_streak": int } }
 _state = {}
+# { nvr_ip: { "online": bool, "fail_streak": int } }
+_nvr_state = {}
 
 def _init_state():
     """Load current DB status into memory on startup."""
@@ -73,6 +75,12 @@ def _init_state():
             "online": bool(cam.get("online", 1)),
             "fail_streak": 0,
             "alerted_offline": False,
+        }
+    nvr_map = db.get_nvr_status_map()
+    for nvr_ip, row in nvr_map.items():
+        _nvr_state[nvr_ip] = {
+            "online": bool(row.get("online", 1)),
+            "fail_streak": 0,
         }
 
 # ── Ping ──────────────────────────────────────────────────────────────────────
@@ -168,6 +176,38 @@ def poll_all():
 
     # Recompute health % from today's snapshot (fast aggregation)
     db.compute_uptime_pcts()
+
+    # ── NVR ping ─────────────────────────────────────────────────────────────
+    nvr_list = db.get_unique_nvr_ips()
+    if nvr_list:
+        now_nvr = datetime.now().isoformat()
+        for nvr in nvr_list:
+            if nvr["nvr_ip"] not in _nvr_state:
+                _nvr_state[nvr["nvr_ip"]] = {"online": True, "fail_streak": 0}
+
+        with ThreadPoolExecutor(max_workers=min(32, len(nvr_list))) as ex:
+            nvr_futures = {ex.submit(_ping, nvr["nvr_ip"]): nvr for nvr in nvr_list}
+            for future in as_completed(nvr_futures):
+                nvr = nvr_futures[future]
+                nvr_ip = nvr["nvr_ip"]
+                nvr_name = nvr["nvr_name"]
+                try:
+                    is_up = future.result()
+                except Exception:
+                    is_up = False
+                st = _nvr_state[nvr_ip]
+                if is_up:
+                    if not st["online"]:
+                        log.info("NVR back online: %s (%s)", nvr_name, nvr_ip)
+                    st["online"] = True
+                    st["fail_streak"] = 0
+                else:
+                    st["fail_streak"] += 1
+                    if st["online"] and st["fail_streak"] >= STATUS_FAIL_THRESHOLD:
+                        st["online"] = False
+                        log.warning("NVR went offline: %s (%s)", nvr_name, nvr_ip)
+                db.upsert_nvr_status(nvr_ip, nvr_name, st["online"], now_nvr)
+        log.debug("NVR ping complete. %d NVRs checked.", len(nvr_list))
 
     # Dispatch alerts
     _dispatch_alerts(cameras, alertable_offline, alertable_recovered)

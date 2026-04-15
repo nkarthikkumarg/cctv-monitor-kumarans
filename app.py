@@ -1203,22 +1203,34 @@ def api_nvrs():
     zone = (request.args.get("zone") or "").strip()
     search = (request.args.get("q") or "").strip().lower()
     items = db.get_nvr_endpoints()
+    nvr_status_map = db.get_nvr_status_map()
 
-    def _ping_item(item):
+    for item in items:
         nvr_ip = (item.get("nvr_ip") or "").strip()
         if not nvr_ip:
             item["status"] = "unconfigured"
             item["status_summary"] = "NVR IP not configured yet."
+            item["last_seen"] = None
+            item["offline_since"] = None
         else:
-            online = monitor.ping_host(nvr_ip)
-            item["status"] = "online" if online else "offline"
-            item["status_summary"] = "NVR responds to direct ping." if online else "NVR is not responding to direct ping."
-        item["last_checked"] = datetime.now().isoformat()
-        return item
+            cached = nvr_status_map.get(nvr_ip)
+            if cached is None:
+                # Not yet polled — fall back to unknown
+                item["status"] = "unknown"
+                item["status_summary"] = "NVR not yet polled. Waiting for next monitor cycle."
+                item["last_seen"] = None
+                item["offline_since"] = None
+            elif cached["online"]:
+                item["status"] = "online"
+                item["status_summary"] = "NVR responds to ping."
+                item["last_seen"] = cached.get("last_seen")
+                item["offline_since"] = None
+            else:
+                item["status"] = "offline"
+                item["status_summary"] = "NVR is not responding to ping."
+                item["last_seen"] = cached.get("last_seen")
+                item["offline_since"] = cached.get("offline_since")
 
-    if items:
-        with ThreadPoolExecutor(max_workers=min(32, len(items))) as pool:
-            items = list(pool.map(_ping_item, items))
     if status:
         items = [item for item in items if item.get("status") == status]
     if zone:
@@ -1237,6 +1249,7 @@ def api_nvrs():
         "online": sum(1 for item in items if item["status"] == "online"),
         "offline": sum(1 for item in items if item["status"] == "offline"),
         "unconfigured": sum(1 for item in items if item["status"] == "unconfigured"),
+        "unknown": sum(1 for item in items if item["status"] == "unknown"),
         "mapped_cameras": sum(item.get("total_cameras", 0) for item in items),
     }
     return jsonify({"summary": summary, "items": items})
