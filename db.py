@@ -345,9 +345,11 @@ def update_camera(original_ip, data):
             if not existing:
                 raise ValueError("Camera not found")
             if new_ip != original_ip:
-                conflict = conn.execute("SELECT ip FROM cameras WHERE ip=?", (new_ip,)).fetchone()
+                conflict = conn.execute("SELECT ip FROM cameras WHERE ip=? AND active=1", (new_ip,)).fetchone()
                 if conflict:
                     raise ValueError("Another camera already uses this IP address")
+                # Purge any soft-deleted record at new_ip so upsert can reclaim it cleanly
+                conn.execute("DELETE FROM cameras WHERE ip=? AND active=0", (new_ip,))
                 conn.execute("UPDATE cameras SET ip=? WHERE ip=?", (new_ip, original_ip))
                 conn.execute("UPDATE status SET ip=? WHERE ip=?", (new_ip, original_ip))
                 conn.execute("UPDATE events SET ip=? WHERE ip=?", (new_ip, original_ip))
